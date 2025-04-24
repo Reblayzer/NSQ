@@ -1,0 +1,27 @@
+use('assignment2');
+
+// insert nad update to see if the trigger works
+
+db.orders.insertOne({
+  customer_id: ObjectId("65e7eac57f48d13f6f8a7a6b"),
+  order_date: new Date(),
+  total_price: NumberDecimal("39.99"),
+  order_details: [
+    {
+      book_copy_id: ObjectId("65e7eac57f48d13f6f8a7a6c"),
+      quantity: 2,
+      subtotal_price: NumberDecimal("39.99")
+    }
+  ]
+});
+
+db.orders.updateOne(
+  { customer_id: ObjectId("65e7eac57f48d13f6f8a7a6b") },
+  { 
+    $set: { 
+      "order_details.0.quantity": 4, 
+      "order_details.0.subtotal_price": NumberDecimal("79.99"),
+      "total_price": NumberDecimal("79.99")
+    }
+  }
+);

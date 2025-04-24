@@ -1,0 +1,97 @@
+use('assignment2');
+
+// Insert categories
+db.categories.insertMany([
+   { name: "Science Fiction", subcategories: ["Space Opera"] },
+   { name: "Fantasy", subcategories: ["Epic Fantasy"] },
+   { name: "Space Opera", subcategories: [] } // Subcategory of Science Fiction
+]);
+
+// Insert authors
+const author1 = db.authors.insertOne({ name: "Isaac Asimov" }).insertedId;
+const author2 = db.authors.insertOne({ name: "Frank Herbert" }).insertedId;
+const author3 = db.authors.insertOne({ name: "J.K. Rowling" }).insertedId;
+const author4 = db.authors.insertOne({ name: "Ursula K. Le Guin" }).insertedId;
+
+// Insert books
+const book1 = db.books.insertOne({
+   isbn: "0553293354",
+   title: "Foundation",
+   authors: [author1],
+   page_count: 255,
+   rating: 4.8,
+   genres: ["Science Fiction"],
+   categories: ["Science Fiction"],
+   characters: ["Hari Seldon", "Gaal Dornick"]
+}).insertedId;
+
+const book2 = db.books.insertOne({
+   isbn: "0441013597",
+   title: "Dune",
+   authors: [author2],
+   page_count: 412,
+   rating: 4.9,
+   genres: ["Science Fiction"],
+   categories: ["Science Fiction", "Space Opera"],
+   characters: ["Paul Atreides", "Baron Harkonnen"]
+}).insertedId;
+
+const book3 = db.books.insertOne({
+   isbn: "0439554934",
+   title: "Harry Potter and the Sorcerer's Stone",
+   authors: [author3],
+   page_count: 309,
+   rating: 4.7,
+   genres: ["Fantasy"],
+   categories: ["Fantasy", "Young Adult"],
+   characters: ["Harry Potter", "Hermione Granger"]
+}).insertedId;
+
+const book4 = db.books.insertOne({
+   isbn: "0143111593",
+   title: "The Left Hand of Darkness",
+   authors: [author4],
+   page_count: 320,
+   rating: 4.5,
+   genres: ["Science Fiction"],
+   categories: ["Science Fiction", "Feminist SF"],
+   characters: ["Genly Ai", "Estraven"]
+}).insertedId;
+
+// Insert book copies (each book has multiple copies)
+const copy1 = db.book_copies.insertOne({ isbn: "0553293354", price: NumberDecimal("9.99"), type: "Paperback" }).insertedId;
+const copy2 = db.book_copies.insertOne({ isbn: "0441013597", price: NumberDecimal("14.99"), type: "Hardcover" }).insertedId;
+const copy3 = db.book_copies.insertOne({ isbn: "0439554934", price: NumberDecimal("12.99"), type: "Paperback" }).insertedId;
+const copy4 = db.book_copies.insertOne({ isbn: "0143111593", price: NumberDecimal("11.99"), type: "E-book" }).insertedId;
+
+// Insert customers
+const customer1 = db.customers.insertOne({
+   name: "John Doe",
+   address: { street: "123 Main St", city: "New York", zip: "10001" }
+}).insertedId;
+
+const customer2 = db.customers.insertOne({
+   name: "Jane Smith",
+   address: { street: "456 Elm St", city: "Los Angeles", zip: "90001" }
+}).insertedId;
+
+// Insert orders (sell books to customers)
+db.orders.insertOne({
+   customer_id: customer1,
+   order_date: new Date(),
+   total_price: NumberDecimal("24.98"),
+   order_details: [
+      { book_copy_id: copy1, quantity: 1, subtotal_price: NumberDecimal("9.99") },
+      { book_copy_id: copy2, quantity: 1, subtotal_price: NumberDecimal("14.99") }
+   ]
+});
+
+db.orders.insertOne({
+   customer_id: customer2,
+   order_date: new Date(),
+   total_price: NumberDecimal("36.97"),
+   order_details: [
+      { book_copy_id: copy3, quantity: 2, subtotal_price: NumberDecimal("25.98") },
+      { book_copy_id: copy4, quantity: 1, subtotal_price: NumberDecimal("11.99") }
+   ]
+});

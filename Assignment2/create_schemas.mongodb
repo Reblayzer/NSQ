@@ -1,0 +1,250 @@
+use('assignment2');
+
+// Books Collection
+// Design Patterns:
+// - Referencing: `authors` field references the `authors` collection.
+// - Attribute Pattern: `genres` and `categories` are arrays of strings for flexible querying.
+db.createCollection("books", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["isbn", "title", "authors", "page_count", "genres", "categories"],
+         properties: {
+            isbn: {
+               bsonType: "string",
+               description: "ISBN must be a valid 10 or 13-digit number as a string"
+            },
+            title: {
+               bsonType: "string"
+            },
+            // Referencing Pattern: Array of ObjectIds referencing the `authors` collection.
+            authors: {
+               bsonType: "array",
+               minItems: 1,
+               items: { bsonType: "objectId" }
+            },
+            page_count: {
+               bsonType: "int",
+               minimum: 1
+            },
+            rating: {
+               bsonType: "double",
+               minimum: 0,
+               maximum: 5
+            },
+            // Attribute Pattern: Array of strings for flexible querying.
+            genres: {
+               bsonType: "array",
+               minItems: 1,
+               items: { bsonType: "string" }
+            },
+            // Attribute Pattern: Array of strings for flexible querying.
+            categories: {
+               bsonType: "array",
+               items: { bsonType: "string" }
+            },
+            characters: {
+               bsonType: "array",
+               items: { bsonType: "string" }
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Books Collection
+// - Index on `isbn`: Ensures fast lookups by ISBN, which is a unique identifier for books.
+db.books.createIndex({ isbn: 1 }, { unique: true });
+// - Index on `title`: Supports efficient searching and sorting by book title.
+db.books.createIndex({ title: 1 });
+// - Index on `genres`: Supports efficient filtering by genre.
+db.books.createIndex({ genres: 1 });
+// - Index on `categories`: Supports efficient filtering by category.
+db.books.createIndex({ categories: 1 });
+
+
+
+// Authors Collection
+// Design Patterns:
+// - Simple Document: Stores author details.
+db.createCollection("authors", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["name"],
+         properties: {
+            name: {
+               bsonType: "string"
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Authors Collection
+// - Index on `name`: Supports efficient searching and sorting by author name.
+db.authors.createIndex({ name: 1 });
+
+
+
+// Customers Collection
+// Design Patterns:
+// - Embedding (Subdocument Pattern): `address` is an embedded document.
+db.createCollection("customers", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["name", "address"],
+         properties: {
+            name: {
+               bsonType: "string"
+            },
+            // Embedding Pattern: Address is stored as a subdocument.
+            address: {
+               bsonType: "object",
+               required: ["street", "city", "zip"],
+               properties: {
+                  street: {
+                     bsonType: "string"
+                  },
+                  city: {
+                     bsonType: "string"
+                  },
+                  zip: {
+                     bsonType: "string",
+                     description: "Zip code must be exactly 5 digits"
+                  }
+               }
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Customers Collection
+// - Index on `name`: Supports efficient searching and sorting by customer name.
+db.customers.createIndex({ name: 1 });
+// - Index on `address.zip`: Supports efficient filtering by zip code.
+db.customers.createIndex({ "address.zip": 1 });
+
+
+
+// Book Copies Collection
+// Design Patterns:
+// - Polymorphic Pattern: `type` field uses an enum to differentiate between book copy types.
+db.createCollection("book_copies", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["isbn", "price", "type"],
+         properties: {
+            isbn: {
+               bsonType: "string"
+            },
+            price: {
+               bsonType: "decimal",
+               minimum: 0.01
+            },
+            // Polymorphic Pattern: `type` field differentiates between book copy types.
+            type: {
+               enum: ["Hardcover", "Paperback", "E-book"]
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Book Copies Collection
+// - Index on `isbn`: Supports efficient lookups by ISBN.
+db.book_copies.createIndex({ isbn: 1 });
+// - Index on `type`: Supports efficient filtering by book copy type.
+db.book_copies.createIndex({ type: 1 });
+
+
+
+// Orders Collection
+// Design Patterns:
+// - Referencing: `customer_id` references the `customers` collection.
+// - Embedding (Subdocument Pattern): `order_details` is an array of embedded documents.
+// - Referencing: `book_copy_id` in `order_details` references the `book_copies` collection.
+db.createCollection("orders", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["customer_id", "order_date", "total_price", "order_details"],
+         properties: {
+            // Referencing Pattern: `customer_id` references the `customers` collection.
+            customer_id: {
+               bsonType: "objectId"
+            },
+            order_date: {
+               bsonType: "date"
+            },
+            total_price: {
+               bsonType: "decimal",
+               minimum: 0
+            },
+            // Embedding Pattern: `order_details` is an array of subdocuments.
+            order_details: {
+               bsonType: "array",
+               minItems: 1,
+               items: {
+                  bsonType: "object",
+                  required: ["book_copy_id", "quantity", "subtotal_price"],
+                  properties: {
+                     // Referencing Pattern: `book_copy_id` references the `book_copies` collection.
+                     book_copy_id: {
+                        bsonType: "objectId"
+                     },
+                     quantity: {
+                        bsonType: "int",
+                        minimum: 1
+                     },
+                     subtotal_price: {
+                        bsonType: "decimal",
+                        minimum: 0
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Orders Collection
+// - Index on `customer_id`: Supports efficient lookups by customer ID.
+db.orders.createIndex({ customer_id: 1 });
+// - Index on `order_date`: Supports efficient sorting and filtering by order date.
+db.orders.createIndex({ order_date: 1 });
+// - Index on `order_details.book_copy_id`: Supports efficient lookups by book copy ID in order details.
+db.orders.createIndex({ "order_details.book_copy_id": 1 });
+
+
+
+// Categories Collection
+// Design Patterns:
+// - Lookup Collection Pattern: Centralizes category data for consistency and scalability.
+db.createCollection("categories", {
+   validator: {
+      $jsonSchema: {
+         bsonType: "object",
+         required: ["name"],
+         properties: {
+            name: { bsonType: "string" },
+            // Attribute Pattern: `subcategories` is an array of strings.
+            subcategories: {
+               bsonType: "array",
+               items: { bsonType: "string" }
+            }
+         }
+      }
+   }
+});
+
+// Indexes for Categories Collection
+// - Index on `name`: Supports efficient lookups by category name.
+db.categories.createIndex({ name: 1 }, { unique: true });
+
+
+db.createCollection("orderLog");

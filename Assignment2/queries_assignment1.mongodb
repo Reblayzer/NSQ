@@ -1,0 +1,146 @@
+use('assignment2');
+
+// Modifying Data (Update and Insert Queries)
+
+// 1. Sell a book to a customer
+db.orders.insertOne({
+   customer_id: ObjectId(),
+   order_date: new Date(),
+   total_price: NumberDecimal("19.99"),
+   order_details: [
+      { book_copy_id: ObjectId(), quantity: 1, subtotal_price: NumberDecimal("19.99") }
+   ]
+});
+
+// 2. Change the address of a customer
+db.customers.updateOne(
+   { _id: ObjectId() },
+   { $set: { "address.street": "789 New St", "address.city": "San Francisco", "address.zip": "94105" } }
+);
+
+// 3. Add an existing author to a book
+db.books.updateOne(
+   { isbn: "9780553293357" },
+   { $addToSet: { authors: ObjectId() } }
+);
+
+// 4. Retire the "Space Opera" category and assign books to its parent category
+const parentCategory = db.categories.findOne({ subcategories: "Space Opera" });
+
+const newCategory = parentCategory ? parentCategory.name : "Science Fiction";
+
+db.books.updateMany(
+   { categories: "Space Opera" },
+   { $addToSet: { categories: newCategory } }
+);
+
+db.books.updateMany(
+   { categories: "Space Opera" },
+   { $pull: { categories: "Space Opera" } }
+);
+
+// 5. Sell 3 copies of one book and 2 of another in a single order
+db.orders.insertOne({
+   customer_id: ObjectId(),
+   order_date: new Date(),
+   total_price: NumberDecimal("79.95"),
+   order_details: [
+      { book_copy_id: ObjectId(), quantity: 3, subtotal_price: NumberDecimal("29.97") },
+      { book_copy_id: ObjectId(), quantity: 2, subtotal_price: NumberDecimal("49.98") }
+   ]
+});
+
+// Querying Data (Find & Aggregate Queries)
+
+// 1. All books by an author
+db.books.find({ authors: ObjectId() }, { title: 1, isbn: 1, _id: 0 });
+
+// 2. Total price of an order
+db.orders.findOne(
+   { _id: ObjectId() },
+   { total_price: 1, _id: 0 }
+);
+
+// 3. Total sales to a customer
+db.orders.aggregate([
+   { $match: { customer_id: ObjectId() } },
+   { $group: { _id: "$customer_id", total_spent: { $sum: "$total_price" } } }
+]);
+
+// 4. Books that are categorized as neither science fiction nor fantasy
+db.books.find({
+   categories: { $nin: ["Science Fiction", "Fantasy"] }
+}, { title: 1, isbn: 1, categories: 1, _id: 0 });
+
+// 5. Average page count by genre
+db.books.aggregate([
+   { $unwind: "$genres" },
+   { $group: { _id: "$genres", avg_page_count: { $avg: "$page_count" } } }
+]);
+
+// 6. Categories that have no sub-categories
+db.categories.find({
+   subcategories: { $exists: false }
+}, { name: 1, _id: 0 });
+
+// 7. ISBN numbers of books with more than one author
+db.books.find({ $where: "this.authors.length > 1" }, { isbn: 1, _id: 0 });
+
+// 8. ISBN numbers of books that sold at least X copies (e.g., X=5)
+db.orders.aggregate([
+   { $unwind: "$order_details" },
+   { $group: { _id: "$order_details.book_copy_id", total_sold: { $sum: "$order_details.quantity" } } },
+   { $match: { total_sold: { $gte: 5 } } },
+   { $lookup: { from: "book_copies", localField: "_id", foreignField: "_id", as: "book_copy" } },
+   { $unwind: "$book_copy" },
+   { $lookup: { from: "books", localField: "book_copy.isbn", foreignField: "isbn", as: "book" } },
+   { $unwind: "$book" },
+   { $project: { isbn: "$book.isbn", total_sold: 1, _id: 0 } }
+]);
+
+// 9. Number of copies of each book sold – including unsold books
+db.books.aggregate([
+   { $lookup: { from: "book_copies", localField: "isbn", foreignField: "isbn", as: "copies" } },
+   { $unwind: { path: "$copies", preserveNullAndEmptyArrays: true } },
+   { $lookup: { from: "orders", localField: "copies._id", foreignField: "order_details.book_copy_id", as: "sales" } },
+   { $unwind: { path: "$sales", preserveNullAndEmptyArrays: true } },
+   { $group: { _id: "$isbn", total_sold: { $sum: { $ifNull: ["$sales.order_details.quantity", 0] } } } }
+]);
+
+// 10. Best-selling books (Top 10)
+db.orders.aggregate([
+   { $unwind: "$order_details" },
+   { $group: { _id: "$order_details.book_copy_id", total_sold: { $sum: "$order_details.quantity" } } },
+   { $sort: { total_sold: -1 } },
+   { $limit: 10 }
+]);
+
+// 11. Best-selling genres (Top 3)
+db.orders.aggregate([
+   { $unwind: "$order_details" },
+   { $lookup: { from: "book_copies", localField: "order_details.book_copy_id", foreignField: "_id", as: "book_copy" } },
+   { $unwind: "$book_copy" },
+   { $lookup: { from: "books", localField: "book_copy.isbn", foreignField: "isbn", as: "book" } },
+   { $unwind: "$book" },
+   { $unwind: "$book.genres" },
+   { $group: { _id: "$book.genres", total_sold: { $sum: "$order_details.quantity" } } },
+   { $sort: { total_sold: -1 } },
+   { $limit: 3 }
+]);
+
+// 12. All science fiction books (including subcategories)
+db.books.find({ categories: "Science Fiction" });
+// db.books.find({ categories: { $in: ["Science Fiction", "Space Opera"] } });
+
+// 13. Characters used in science fiction books
+db.books.aggregate([
+   { $match: { categories: "Science Fiction" } },
+   { $unwind: "$characters" },
+   { $group: { _id: null, characters: { $addToSet: "$characters" } } }
+]);
+
+// 14. Number of books in each category
+db.books.aggregate([
+   { $unwind: "$categories" },
+   { $group: { _id: "$categories", book_count: { $sum: 1 } } }
+]);

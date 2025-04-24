@@ -1,0 +1,434 @@
+set schema 'assignment1';
+
+create table author
+(
+    author_id   int primary key not null,
+    author_name varchar(50)     not null
+);
+
+create table book
+(
+    isbn        bigint primary key not null,
+    book_name   varchar(50)        not null,
+    page_count  int check (page_count > 0),
+    book_rating double precision,
+    author_id   int                not null,
+    foreign key (author_id) references author (author_id) on delete cascade
+);
+
+create table genre
+(
+    genre_id   int primary key not null,
+    genre_name varchar(50)     not null
+);
+
+create table character
+(
+    character_id   int primary key not null,
+    character_name varchar(50)     not null
+);
+
+create table book_type
+(
+    book_type_id int primary key not null,
+    type         varchar(50)     not null
+);
+
+create table customer
+(
+    customer_id      int primary key not null,
+    customer_name    varchar(50)     not null,
+    customer_address varchar(50)     not null
+);
+
+create table category
+(
+    category_id        int primary key not null,
+    category_name      varchar(50)     not null,
+    parent_category_id int             null
+);
+
+create table book_copy
+(
+    book_copy_id int primary key not null,
+    isbn         bigint          not null,
+    book_price   double precision check (book_price >= 0),
+    foreign key (isbn) references book (isbn) on delete cascade
+);
+
+create table book_order
+(
+    order_id    int primary key not null,
+    customer_id int             not null,
+    order_date  timestamp       not null,
+    total_price DOUBLE PRECISION,
+    foreign key (customer_id) references customer (customer_id) on delete cascade
+);
+
+CREATE TABLE order_details
+(
+    order_id       INT NOT NULL,
+    book_copy_id   INT NOT NULL,
+    quantity       INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    subtotal_price DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (order_id, book_copy_id),
+    FOREIGN KEY (order_id) REFERENCES book_order (order_id) ON DELETE CASCADE,
+    FOREIGN KEY (book_copy_id) REFERENCES book_copy (book_copy_id) ON DELETE CASCADE
+);
+
+CREATE OR REPLACE FUNCTION calculate_subtotal_price()
+    RETURNS TRIGGER AS $$
+BEGIN
+    -- Set the subtotal_price based on quantity * book_price
+    NEW.subtotal_price := (SELECT book_price FROM book_copy WHERE book_copy.book_copy_id = NEW.book_copy_id) * NEW.quantity;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_calculate_subtotal
+    BEFORE INSERT OR UPDATE ON order_details
+    FOR EACH ROW
+EXECUTE FUNCTION calculate_subtotal_price();
+
+create table genre_category_pair
+(
+    genre_id    int not null,
+    category_id int not null,
+    foreign key (genre_id) references genre (genre_id) on delete cascade,
+    foreign key (category_id) references category (category_id) on delete cascade
+);
+
+create table book_character_pair
+(
+    isbn         bigint not null,
+    character_id int    not null,
+    foreign key (isbn) references book (isbn) on delete cascade,
+    foreign key (character_id) references character (character_id) on delete cascade
+);
+
+create table character_category_pair
+(
+    character_id int not null,
+    category_id  int not null,
+    foreign key (character_id) references character (character_id) on delete cascade,
+    foreign key (category_id) references category (category_id) on delete cascade
+);
+
+create table book_category_pair
+(
+    isbn        bigint not null,
+    category_id int    not null,
+    foreign key (isbn) references book (isbn) on delete cascade,
+    foreign key (category_id) references category (category_id) on delete cascade
+);
+
+create table book_type_book_copy_pair
+(
+    book_type_id int not null,
+    book_copy_id int not null,
+    foreign key (book_type_id) references book_type (book_type_id) on delete cascade,
+    foreign key (book_copy_id) references book_copy (book_copy_id) on delete cascade
+);
+
+create table book_genre_pair
+(
+    isbn     bigint not null,
+    genre_id int    not null,
+    foreign key (isbn) references book (isbn) on delete cascade,
+    foreign key (genre_id) references genre (genre_id) on delete cascade
+);
+
+create table book_author_pair
+(
+    isbn      bigint not null,
+    author_id int    not null,
+    foreign key (isbn) references book (isbn) on delete cascade,
+    foreign key (author_id) references author (author_id) on delete cascade
+);
+
+
+
+insert into author (author_id, author_name)
+values (1, 'j.k. rowling'),
+       (2, 'george r. r. martin'),
+       (3, 'j.r.r. tolkien'),
+       (4, 'isaac asimov'),
+       (5, 'agatha christie');
+commit;
+
+begin;
+insert into book (isbn, book_name, author_id, page_count, book_rating)
+values (9780747532743, 'harry potter and the philosophers stone', 1, 223, 4.7),
+       (9780553381689, 'a game of thrones', 2, 694, 4.6),
+       (9780261103573, 'the fellowship of the ring', 3, 423, 4.8),
+       (9780553293357, 'i, robot', 4, 253, 4.2),
+       (9780062073488, 'murder on the orient express', 5, 256, 4.5);
+commit;
+
+insert into genre (genre_id, genre_name)
+values (1, 'fantasy'),
+       (2, 'science fiction'),
+       (3, 'mystery'),
+       (4, 'adventure'),
+       (5, 'thriller');
+
+insert into character (character_id, character_name)
+values (1, 'harry potter'),
+       (2, 'jon snow'),
+       (3, 'frodo baggins'),
+       (4, 'r. daneel olivaw'),
+       (5, 'hercule poirot');
+
+insert into book_type (book_type_id, type)
+values (1, 'hardcover'),
+       (2, 'paperback'),
+       (3, 'e-book'),
+       (4, 'audiobook'),
+       (5, 'graphic novel');
+
+insert into customer (customer_id, customer_name, customer_address)
+values (1, 'john doe', '123 elm st'),
+       (2, 'jane smith', '456 oak ave'),
+       (3, 'bob johnson', '789 pine rd'),
+       (4, 'alice williams', '101 maple blvd'),
+       (5, 'charlie brown', '202 birch ln');
+
+insert into category (category_id, category_name, parent_category_id)
+values (1, 'fiction', null),
+       (2, 'non-fiction', null),
+       (3, 'classics', 1),
+       (4, 'sci-fi', 1),
+       (5, 'mystery', 1);
+
+begin;
+insert into book_copy (book_copy_id, isbn, book_price)
+values (1, 9780747532743, 19.99),
+       (2, 9780553381689, 24.99),
+       (3, 9780261103573, 18.50),
+       (4, 9780553293357, 14.99),
+       (5, 9780062073488, 9.99);
+commit;
+
+insert into book_order (order_id, customer_id, order_date)
+values (1, 1, '2025-02-13 10:00:00'),
+       (2, 2, '2025-02-13 11:00:00'),
+       (3, 3, '2025-02-13 12:00:00'),
+       (4, 4, '2025-02-13 13:00:00'),
+       (5, 5, '2025-02-13 14:00:00');
+
+insert into genre_category_pair (genre_id, category_id)
+values (1, 1),
+       (2, 2),
+       (3, 1),
+       (4, 1),
+       (5, 1);
+
+insert into book_character_pair (isbn, character_id)
+values (9780747532743, 1),
+       (9780553381689, 2),
+       (9780261103573, 3),
+       (9780553293357, 4),
+       (9780062073488, 5);
+
+insert into character_category_pair (character_id, category_id)
+values (1, 1),
+       (2, 1),
+       (3, 1),
+       (4, 4),
+       (5, 5);
+
+insert into book_category_pair (isbn, category_id)
+values (9780747532743, 1),
+       (9780553381689, 1),
+       (9780261103573, 4),
+       (9780553293357, 5),
+       (9780062073488, 1);
+
+
+insert into book_type_book_copy_pair (book_type_id, book_copy_id)
+values (1, 1),
+       (2, 2),
+       (3, 3),
+       (4, 4),
+       (5, 5);
+
+insert into book_genre_pair (isbn, genre_id)
+values (9780747532743, 1),
+       (9780553381689, 2),
+       (9780261103573, 1),
+       (9780553293357, 3),
+       (9780062073488, 4);
+
+insert into book_author_pair (isbn, author_id)
+values (9780747532743, 1),
+       (9780553381689, 2),
+       (9780261103573, 3),
+       (9780553293357, 4),
+       (9780062073488, 5);
+
+insert into order_details (order_id, book_copy_id, quantity)
+values (1, 1, 1),
+       (2, 2, 1),
+       (3, 3, 2),
+       (4, 4, 1),
+       (5, 5, 3);
+
+
+
+--modifying data
+--4.1)
+BEGIN;
+INSERT INTO book_order (order_id, customer_id, order_date)
+VALUES (6, 1, NOW());
+
+INSERT INTO order_details (order_id, book_copy_id, quantity)
+VALUES (6, 2, 1);
+COMMIT;
+
+
+--4.2)
+UPDATE customer
+SET customer_address = '789 New Street'
+WHERE customer_id = 1;
+
+
+--4.3)
+INSERT INTO book_author_pair (isbn, author_id)
+VALUES (9780747532743, 3);
+
+--4.4)
+WITH parent AS (SELECT parent_category_id FROM category WHERE category_name = 'Space Opera')
+UPDATE book_category_pair
+SET category_id = (SELECT parent_category_id FROM parent)
+WHERE category_id = (SELECT category_id FROM category WHERE category_name = 'Space Opera');
+
+DELETE
+FROM category
+WHERE category_name = 'Space Opera';
+
+--4.5)
+BEGIN;
+INSERT INTO book_order (order_id, customer_id, order_date)
+VALUES (7, 2, NOW());
+
+INSERT INTO order_details (order_id, book_copy_id, quantity)
+VALUES (7, 3, 3),
+       (7, 4, 2);
+COMMIT;
+
+
+--querying data
+--4.1)
+SELECT book_name
+FROM book
+WHERE author_id = 1;
+
+--4.2)
+SELECT o.order_id, SUM(bc.book_price * od.quantity) AS total_price
+FROM book_order o
+         JOIN order_details od ON o.order_id = od.order_id
+         JOIN book_copy bc ON od.book_copy_id = bc.book_copy_id
+WHERE o.order_id = 1
+GROUP BY o.order_id;
+
+--4.3)
+SELECT c.customer_id, c.customer_name, SUM(bc.book_price * od.quantity) AS total_spent
+FROM customer c
+         JOIN book_order o ON c.customer_id = o.customer_id
+         JOIN order_details od ON o.order_id = od.order_id
+         JOIN book_copy bc ON od.book_copy_id = bc.book_copy_id
+WHERE c.customer_id = 1
+GROUP BY c.customer_id, c.customer_name;
+
+--4.4)
+SELECT DISTINCT b.isbn, b.book_name
+FROM book b
+WHERE NOT EXISTS (SELECT 1
+                  FROM book_genre_pair bg
+                           JOIN genre g ON bg.genre_id = g.genre_id
+                  WHERE bg.isbn = b.isbn
+                    AND g.genre_name IN ('science fiction', 'fantasy'));
+
+--4.5)
+SELECT g.genre_name, AVG(b.page_count) AS avg_pages
+FROM book b
+         JOIN book_genre_pair bg ON b.isbn = bg.isbn
+         JOIN genre g ON bg.genre_id = g.genre_id
+GROUP BY g.genre_name;
+
+--4.6)
+SELECT c1.category_id, c1.category_name
+FROM category c1
+         LEFT JOIN category c2 ON c1.category_id = c2.parent_category_id
+WHERE c2.category_id IS NULL;
+
+--4.7)
+SELECT isbn
+FROM book_author_pair
+GROUP BY isbn
+HAVING COUNT(author_id) > 1;
+
+--4.8)
+SELECT od.book_copy_id, SUM(od.quantity) AS total_sold
+FROM order_details od
+GROUP BY od.book_copy_id
+HAVING SUM(od.quantity) >= 5;
+
+--4.9)
+SELECT b.isbn, b.book_name, COALESCE(SUM(od.quantity), 0) AS total_sold
+FROM book b
+         LEFT JOIN book_copy bc ON b.isbn = bc.isbn
+         LEFT JOIN order_details od ON bc.book_copy_id = od.book_copy_id
+GROUP BY b.isbn, b.book_name;
+
+--4.10)
+SELECT b.isbn, b.book_name, SUM(od.quantity) AS total_sold
+FROM book b
+         JOIN book_copy bc ON b.isbn = bc.isbn
+         JOIN order_details od ON bc.book_copy_id = od.book_copy_id
+GROUP BY b.isbn, b.book_name
+ORDER BY total_sold DESC
+LIMIT 10;
+
+--4.11)
+SELECT g.genre_name, SUM(od.quantity) AS total_sold
+FROM book_genre_pair bg
+         JOIN genre g ON bg.genre_id = g.genre_id
+         JOIN book_copy bc ON bg.isbn = bc.isbn
+         JOIN order_details od ON bc.book_copy_id = od.book_copy_id
+GROUP BY g.genre_name
+ORDER BY total_sold DESC
+LIMIT 3;
+
+--4.12)
+WITH RECURSIVE sci_fi_categories AS (SELECT category_id
+                                     FROM category
+                                     WHERE category_name = 'science fiction'
+                                     UNION ALL
+                                     SELECT c.category_id
+                                     FROM category c
+                                              JOIN sci_fi_categories sc ON c.parent_category_id = sc.category_id)
+SELECT DISTINCT b.isbn, b.book_name
+FROM book b
+         JOIN book_category_pair bc ON b.isbn = bc.isbn
+WHERE bc.category_id IN (SELECT category_id FROM sci_fi_categories);
+
+--4.13)
+WITH RECURSIVE sci_fi_categories AS (SELECT category_id
+                                     FROM category
+                                     WHERE category_name = 'science fiction'
+                                     UNION ALL
+                                     SELECT c.category_id
+                                     FROM category c
+                                              JOIN sci_fi_categories sc ON c.parent_category_id = sc.category_id)
+SELECT DISTINCT ch.character_name
+FROM character ch
+         JOIN book_character_pair bch ON ch.character_id = bch.character_id
+         JOIN book_category_pair bc ON bch.isbn = bc.isbn
+WHERE bc.category_id IN (SELECT category_id FROM sci_fi_categories);
+
+--4.14)
+SELECT c.category_name, COUNT(DISTINCT bc.isbn) AS book_count
+FROM category c
+         LEFT JOIN book_category_pair bc ON c.category_id = bc.category_id
+GROUP BY c.category_name;
