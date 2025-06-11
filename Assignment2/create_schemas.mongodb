@@ -8,7 +8,7 @@ db.createCollection("books", {
    validator: {
       $jsonSchema: {
          bsonType: "object",
-         required: ["isbn", "title", "authors", "page_count", "genres", "categories"],
+         required: ["isbn","title","authors","page_count","genres","categories","price"],
          properties: {
             isbn: {
                bsonType: "string",
@@ -46,6 +46,10 @@ db.createCollection("books", {
             characters: {
                bsonType: "array",
                items: { bsonType: "string" }
+            },
+            price: {
+               bsonType: "decimal",
+               minimum:0.01
             }
          }
       }
@@ -61,6 +65,8 @@ db.books.createIndex({ title: 1 });
 db.books.createIndex({ genres: 1 });
 // - Index on `categories`: Supports efficient filtering by category.
 db.books.createIndex({ categories: 1 });
+// - Index on `price`: Supports efficient sorting and filtering by book price.
+db.books.createIndex({ price: 1 });
 
 
 
@@ -94,10 +100,14 @@ db.createCollection("customers", {
    validator: {
       $jsonSchema: {
          bsonType: "object",
-         required: ["name", "address"],
+         required: ["name","email","address"],
          properties: {
             name: {
                bsonType: "string"
+            },
+            name: {
+               bsonType: "string",
+               description:"must be a valid email string"
             },
             // Embedding Pattern: Address is stored as a subdocument.
             address: {
@@ -124,6 +134,8 @@ db.createCollection("customers", {
 // Indexes for Customers Collection
 // - Index on `name`: Supports efficient searching and sorting by customer name.
 db.customers.createIndex({ name: 1 });
+// - Index on `email`: Supports efficient searching by customer email.
+db.customers.createIndex({ email: 1 }, { unique: true });
 // - Index on `address.zip`: Supports efficient filtering by zip code.
 db.customers.createIndex({ "address.zip": 1 });
 

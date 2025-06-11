@@ -22,7 +22,8 @@ const book1 = db.books.insertOne({
    rating: 4.8,
    genres: ["Science Fiction"],
    categories: ["Science Fiction"],
-   characters: ["Hari Seldon", "Gaal Dornick"]
+   characters: ["Hari Seldon", "Gaal Dornick"],
+   price: NumberDecimal("9.99")
 }).insertedId;
 
 const book2 = db.books.insertOne({
@@ -33,7 +34,8 @@ const book2 = db.books.insertOne({
    rating: 4.9,
    genres: ["Science Fiction"],
    categories: ["Science Fiction", "Space Opera"],
-   characters: ["Paul Atreides", "Baron Harkonnen"]
+   characters: ["Paul Atreides", "Baron Harkonnen"],
+   price: NumberDecimal("14.99")
 }).insertedId;
 
 const book3 = db.books.insertOne({
@@ -44,7 +46,8 @@ const book3 = db.books.insertOne({
    rating: 4.7,
    genres: ["Fantasy"],
    categories: ["Fantasy", "Young Adult"],
-   characters: ["Harry Potter", "Hermione Granger"]
+   characters: ["Harry Potter", "Hermione Granger"],
+   price: NumberDecimal("12.99")
 }).insertedId;
 
 const book4 = db.books.insertOne({
@@ -55,43 +58,46 @@ const book4 = db.books.insertOne({
    rating: 4.5,
    genres: ["Science Fiction"],
    categories: ["Science Fiction", "Feminist SF"],
-   characters: ["Genly Ai", "Estraven"]
+   characters: ["Genly Ai", "Estraven"],
+  price: NumberDecimal("11.99")
 }).insertedId;
 
 // Insert book copies (each book has multiple copies)
-const copy1 = db.book_copies.insertOne({ isbn: "0553293354", price: NumberDecimal("9.99"), type: "Paperback" }).insertedId;
-const copy2 = db.book_copies.insertOne({ isbn: "0441013597", price: NumberDecimal("14.99"), type: "Hardcover" }).insertedId;
-const copy3 = db.book_copies.insertOne({ isbn: "0439554934", price: NumberDecimal("12.99"), type: "Paperback" }).insertedId;
-const copy4 = db.book_copies.insertOne({ isbn: "0143111593", price: NumberDecimal("11.99"), type: "E-book" }).insertedId;
+const c1 = db.book_copies.insertOne({ isbn:"0553293354", price:NumberDecimal("9.99"),  type:"Paperback" }).insertedId;
+const c2 = db.book_copies.insertOne({ isbn:"0441013597", price:NumberDecimal("14.99"), type:"Hardcover" }).insertedId;
+const c3 = db.book_copies.insertOne({ isbn:"0439554934", price:NumberDecimal("12.99"), type:"Paperback" }).insertedId;
+const c4 = db.book_copies.insertOne({ isbn:"0143111593", price:NumberDecimal("11.99"), type:"E-book"   }).insertedId;
 
 // Insert customers
-const customer1 = db.customers.insertOne({
-   name: "John Doe",
-   address: { street: "123 Main St", city: "New York", zip: "10001" }
+const cust1 = db.customers.insertOne({
+  name:    "John Doe",
+  email:   "john.doe@example.com",
+  address: { street:"123 Main St", city:"New York", zip:"10001" }
 }).insertedId;
 
-const customer2 = db.customers.insertOne({
-   name: "Jane Smith",
-   address: { street: "456 Elm St", city: "Los Angeles", zip: "90001" }
+const cust2 = db.customers.insertOne({
+  name:    "Jane Smith",
+  email:   "jane.smith@example.com",
+  address: { street:"456 Elm St", city:"Los Angeles", zip:"90001" }
 }).insertedId;
 
 // Insert orders (sell books to customers)
 db.orders.insertOne({
-   customer_id: customer1,
-   order_date: new Date(),
-   total_price: NumberDecimal("24.98"),
-   order_details: [
-      { book_copy_id: copy1, quantity: 1, subtotal_price: NumberDecimal("9.99") },
-      { book_copy_id: copy2, quantity: 1, subtotal_price: NumberDecimal("14.99") }
-   ]
+  customer_id: cust1,
+  order_date:  new Date(),
+  total_price: NumberDecimal("24.98"),
+  order_details: [
+    { book_copy_id:c1, quantity:1, subtotal_price:NumberDecimal("9.99") },
+    { book_copy_id:c2, quantity:1, subtotal_price:NumberDecimal("14.99") }
+  ]
 });
 
 db.orders.insertOne({
-   customer_id: customer2,
-   order_date: new Date(),
-   total_price: NumberDecimal("36.97"),
-   order_details: [
-      { book_copy_id: copy3, quantity: 2, subtotal_price: NumberDecimal("25.98") },
-      { book_copy_id: copy4, quantity: 1, subtotal_price: NumberDecimal("11.99") }
-   ]
+  customer_id: cust2,
+  order_date:  new Date(),
+  total_price: NumberDecimal("36.97"),
+  order_details: [
+    { book_copy_id:c3, quantity:2, subtotal_price:NumberDecimal("25.98") },
+    { book_copy_id:c4, quantity:1, subtotal_price:NumberDecimal("11.99") }
+  ]
 });

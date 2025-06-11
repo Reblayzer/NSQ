@@ -1,7 +1,7 @@
 /// 4A
 
 const { MongoClient, ObjectId, Decimal128 } = require('mongodb');
-const uri = 'mongodb+srv://bolfaalexandro:vzqyaeLYLFg5oN8k@nsq.9wtyj.mongodb.net/';
+const uri = 'mongodb+srv://bolfaalexandro:zWmeMCRdThpCSvt6@nsq.9wtyj.mongodb.net/';
 const client = new MongoClient(uri);
 
 // 1.   Sell a book to a customer.

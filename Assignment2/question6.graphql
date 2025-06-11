@@ -1,0 +1,81 @@
+"""
+A single book in the store.
+"""
+type Book {
+  id: ID! # internal unique identifier
+  isbn: String! # ISBN code
+  title: String!
+  price: Float!
+  authors: [Author!]! # referenced authors
+}
+
+"""
+An author of one or more books.
+"""
+type Author {
+  id: ID!
+  name: String!
+}
+
+"""
+A customer who places orders.
+"""
+type Customer {
+  id: ID!
+  name: String!
+  email: String! # unique
+}
+
+"""
+One line item in an order.
+"""
+type OrderItem {
+  book: Book!
+  quantity: Int!
+  lineTotal: Float! # quantity * book.price
+}
+
+"""
+A customer’s order.
+"""
+type Order {
+  id: ID!
+  customer: Customer!
+  items: [OrderItem!]!
+  numberOfBooks: Int! # sum of quantities
+  totalPrice: Float! # sum of lineTotals
+}
+
+"""
+Root entry point for reads.
+"""
+type Query {
+  """
+  Find all books whose title contains the given term (case-insensitive).
+  """
+  searchBooks(term: String!): [Book!]!
+
+  """
+  Fetch all orders placed by the customer with this email.
+  Each Order includes computed numberOfBooks and totalPrice.
+  """
+  ordersByCustomer(email: String!): [Order!]!
+}
+
+"""
+Root entry point for writes.
+"""
+type Mutation {
+  """
+  1-click: create a new order of quantity 1 for the given book and customer.
+  Returns the complete Order (with computed totals).
+  """
+  createOrder(customerId: ID!, bookCopyId: ID!): Order!
+
+  """
+  Apply a percentage reduction on the book’s price.
+  `percentage` is, for example, 20.0 to mean “20% off.”
+  Returns the updated Book.
+  """
+  applyBookDiscount(bookId: ID!, percentage: Float!): Book!
+}
