@@ -125,3 +125,97 @@ db.orders.aggregate([
 ]);
 
 
+
+db.inventory.aggregate([
+  { 
+    $match: { 
+      status: "A",           // only items In Stock 
+      qty:    { $lt: 30 }    // with quantity < 30 
+    } 
+  }
+]);
+
+
+
+db.books.aggregate([
+  { 
+    $project: {
+      _id:    0,             // hide _id
+      title:  1,             // include title
+      isbn:   1,             // include isbn
+      pages_k: {             // compute pages in thousands
+        $divide: ["$page_count", 1000]
+      }
+    }
+  }
+]);
+
+
+
+db.bookstore.aggregate([
+  { 
+    $unwind: "$categories"  // one output doc per category
+  }
+]);
+
+
+
+
+
+db.orders.aggregate([
+  { 
+    $group: {
+      _id: "$customer_id",           // group by customer
+      totalSpent: { $sum: "$amount" },  // sum up their orders
+      orderCount: { $sum: 1 }           // count their orders
+    }
+  }
+]);
+
+
+
+
+db.orders.aggregate([
+  {
+    $lookup: {
+      from:         "customers",    // collection to join
+      localField:   "cust_id",      // in orders
+      foreignField: "_id",          // in customers
+      as:           "cust_info"     // output array
+    }
+  },
+  { $unwind: "$cust_info" }         // one order → one customer
+]);
+
+
+db.employees.aggregate([
+  {
+    $graphLookup: {
+      from:             "employees",     // same coll’n
+      startWith:        "$manager_id",   // initial link
+      connectFromField: "manager_id",    // each level’s link field
+      connectToField:   "_id",           // match against _id
+      as:               "chain",         // output array
+      depthField:       "level"          // recursion depth
+    }
+  }
+]);
+
+
+
+
+
+db.books.find(
+  { authors: ObjectId("…") },
+  { _id: 0, title: 1, isbn: 1 }
+);
+
+db.books.aggregate(
+  [
+    { $match:   { authors: ObjectId("…") } },
+    { $project: { _id: 0, title: 1, isbn: 1 } }
+  ]
+);
+              
+
+

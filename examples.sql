@@ -61,3 +61,15 @@ CREATE TABLE "Order" (
 );
 
 
+
+
+
+
+SELECT b.title, b.isbn
+  FROM books b
+  JOIN book_authors ba
+    ON b.id = ba.book_id
+ WHERE ba.author_id = ?;
+
+
+

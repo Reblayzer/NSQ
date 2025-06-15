@@ -244,3 +244,24 @@ type Query {
     )
 }
 
+
+type Query {
+ getBooksByAuthorId(id: ID!): [Book!]!
+    @cypher(
+      statement: """
+        MATCH (a:Author {id: $id})-[:WROTE]->(b:Book)
+        RETURN b AS book
+      """,
+      columnName: "book"
+    )
+}
+
+
+query {
+  getBooksByAuthorId(id: "author-uuid-here") {
+    title
+    isbn
+  }
+}
+
+

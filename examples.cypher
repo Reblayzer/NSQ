@@ -128,3 +128,11 @@ RETURN c.name;
 
 
 
+query($id: ID!) {
+  author(where: { id: $id }) {
+    books {
+      title
+      isbn
+    }
+  }
+}
