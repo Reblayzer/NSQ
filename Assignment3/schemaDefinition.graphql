@@ -1,79 +1,75 @@
 # Type Definitions
 type Author @node(labels: ["Author"]) {
-  id:    ID!     @id
-  name:  String!
+  id: ID! @id
+  name: String!
   books: [Book!]! @relationship(type: "WRITTEN_BY", direction: IN)
 }
 
 type Character @node(labels: ["Character"]) {
-  id:    ID!     @id
-  name:  String!
+  id: ID! @id
+  name: String!
   books: [Book!]! @relationship(type: "HAS_CHARACTER", direction: IN)
 }
 
 type Category @node(labels: ["Category"]) {
-  id:             ID!     @id
-  name:           String!
-  books:          [Book!]!    @relationship(type: "BELONGS_TO", direction: IN)
-  parentCategory: [Category!]! @relationship(type: "SUBCATEGORY_OF", direction: OUT)
-  subcategories:  [Category!]! @relationship(type: "SUBCATEGORY_OF", direction: IN)
+  id: ID! @id
+  name: String!
+  books: [Book!]! @relationship(type: "BELONGS_TO", direction: IN)
+  parentCategory: [Category!]!
+    @relationship(type: "SUBCATEGORY_OF", direction: OUT)
+  subcategories: [Category!]!
+    @relationship(type: "SUBCATEGORY_OF", direction: IN)
 }
 
 type Book @node(labels: ["Book"]) {
-  id:         ID!     @id
-  isbn:       String!
-  title:      String!
+  id: ID! @id
+  isbn: String!
+  title: String!
   page_count: Int!
-  rating:     Float!
-  genres:     [String!]!
+  rating: Float!
+  genres: [String!]!
   categories: [Category!]! @relationship(type: "BELONGS_TO", direction: OUT)
   characters: [Character!]! @relationship(type: "HAS_CHARACTER", direction: OUT)
-  authors:    [Author!]!    @relationship(type: "WRITTEN_BY", direction: OUT)
-  copies:     [BookCopy!]!  @relationship(type: "OF", direction: IN)
+  authors: [Author!]! @relationship(type: "WRITTEN_BY", direction: OUT)
+  copies: [BookCopy!]! @relationship(type: "OF", direction: IN)
 }
 
 type BookCopy @node(labels: ["BookCopy"]) {
-  id:     ID!     @id
-  isbn:   String!
-  price:  Float!
-  type:   String!
-  book:   [Book!]!  @relationship(type: "OF", direction: OUT)
-  orders: [Order!]! @relationship(
-    type:       "CONTAINS", 
-    direction:  IN, 
-    properties: "ContainsRel"
-  )
+  id: ID! @id
+  isbn: String!
+  price: Float!
+  type: String!
+  book: [Book!]! @relationship(type: "OF", direction: OUT)
+  orders: [Order!]!
+    @relationship(type: "CONTAINS", direction: IN, properties: "ContainsRel")
 }
 
 type Customer @node(labels: ["Customer"]) {
-  id:      ID!     @id
-  name:    String!
-  email:   String!
+  id: ID! @id
+  name: String!
+  email: String!
   address: String!
-  orders:  [Order!]! @relationship(type: "PLACED", direction: OUT)
+  orders: [Order!]! @relationship(type: "PLACED", direction: OUT)
 }
 
 type Order @node(labels: ["Order"]) {
-  id:          ID!     @id
-  order_date:  Date!
+  id: ID! @id
+  order_date: Date!
   total_price: Float!
-  customer:    [Customer!]! @relationship(type: "PLACED", direction: IN)
-  book_copies: [BookCopy!]! @relationship(
-    type:       "CONTAINS",
-    direction:  OUT,
-    properties: "ContainsRel"
-  )
+  customer: Customer! @relationship(type: "PLACED", direction: IN)
+  book_copies: [BookCopy!]!
+    @relationship(type: "CONTAINS", direction: OUT, properties: "ContainsRel")
 }
 
 type ContainsRel @relationshipProperties {
-	quantity: Int!
-	subtotal_price: Float!
+  quantity: Int!
+  subtotal_price: Float!
 }
 
 input OrderItemInput {
-  bookCopyId:     ID!
-  quantity:       Int!
-  subtotalPrice:  Float!
+  bookCopyId: ID!
+  quantity: Int!
+  subtotalPrice: Float!
 }
 # Queries
 
@@ -81,41 +77,37 @@ type Query {
   searchBooks(searchTerm: String!): [Book!]!
     @cypher(
       statement: """
-        MATCH (b:Book)
-        OPTIONAL MATCH (b)-[:WRITTEN_BY]->(a:Author)
-        WHERE b.title CONTAINS $searchTerm OR a.name CONTAINS $searchTerm
-        RETURN DISTINCT b
-      """,
+      MATCH (b:Book)
+      OPTIONAL MATCH (b)-[:WRITTEN_BY]->(a:Author)
+      WHERE b.title CONTAINS $searchTerm OR a.name CONTAINS $searchTerm
+      RETURN DISTINCT b
+      """
       columnName: "b"
     )
 
-  ordersByCustomerAndGenre(
-    customerEmail: String!, 
-    genre:         String!
-  ): [Order!]!
+  ordersByCustomerAndGenre(customerEmail: String!, genre: String!): [Order!]!
     @cypher(
       statement: """
-        MATCH (c:Customer {email:$customerEmail})-[:PLACED]->(o:Order)
-        MATCH (o)-[:CONTAINS]->(bc:BookCopy)-[:OF]->(b:Book)-[:BELONGS_TO]->(cat:Category)
-        WHERE cat.name = $genre
-        RETURN DISTINCT o
-      """,
+      MATCH (c:Customer {email:$customerEmail})-[:PLACED]->(o:Order)
+      MATCH (o)-[:CONTAINS]->(bc:BookCopy)-[:OF]->(b:Book)-[:BELONGS_TO]->(cat:Category)
+      WHERE cat.name = $genre
+      RETURN DISTINCT o
+      """
       columnName: "o"
     )
 
   booksInCategory(categoryName: String!): [Book!]!
     @cypher(
       statement: """
-        MATCH (b:Book)-[:BELONGS_TO]->(c:Category)
-        WHERE (c)-[:SUBCATEGORY_OF*0..]->(:Category {name:$categoryName})
-        RETURN DISTINCT b
-      """,
+      MATCH (b:Book)-[:BELONGS_TO]->(c:Category)
+      WHERE (c)-[:SUBCATEGORY_OF*0..]->(:Category {name:$categoryName})
+      RETURN DISTINCT b
+      """
       columnName: "b"
     )
 }
 
 """
-
 # Querries on apollo
 
 query {
@@ -158,7 +150,7 @@ query BooksInCategory($cat: String!) {
 Variables
 {
 	"cat": "Fiction"
-} 
+}
 
 # Mutations on Apollo
 
@@ -212,70 +204,67 @@ mutation {
   }
 }
 """
-
-# Mutations
-
 type Mutation {
   createOrderSingleBook(
-    customerEmail: String!,
-    bookCopyId:    ID!,
-    price:         Float!
+    customerEmail: String!
+    bookCopyId: ID!
+    price: Float!
   ): Order
     @cypher(
       statement: """
-        MATCH (c:Customer {email:$customerEmail})
-        MATCH (bc:BookCopy {id:$bookCopyId})
-        CREATE (o:Order {
-          id:            randomUUID(),
-          order_date:    date(),
-          total_price:   $price
-        })
-        CREATE (c)-[:PLACED]->(o)
-        CREATE (o)-[:CONTAINS {
-          quantity:       1,
-          subtotal_price: $price
-        }]->(bc)
-        RETURN o
-      """,
+      MATCH (c:Customer {email:$customerEmail})
+      MATCH (bc:BookCopy {id:$bookCopyId})
+      CREATE (o:Order {
+        id:            randomUUID(),
+        order_date:    date(),
+        total_price:   $price
+      })
+      CREATE (c)-[:PLACED]->(o)
+      CREATE (o)-[:CONTAINS {
+        quantity:       1,
+        subtotal_price: $price
+      }]->(bc)
+      RETURN o
+      """
       columnName: "o"
     )
 
   createOrderMultipleBooks(
-    customerEmail: String!,
-    items:         [OrderItemInput!]!,
-    totalPrice:    Float!
+    customerEmail: String!
+    items: [OrderItemInput!]!
+    totalPrice: Float!
   ): Order
     @cypher(
       statement: """
-        MATCH (c:Customer {email:$customerEmail})
-        CREATE (o:Order {
-          id:            randomUUID(),
-          order_date:    date(),
-          total_price:   $totalPrice
-        })
-        CREATE (c)-[:PLACED]->(o)
-        WITH o
-        UNWIND $items AS item
-        MATCH (bc:BookCopy {id:item.bookCopyId})
-        CREATE (o)-[:CONTAINS {
-          quantity:       item.quantity,
-          subtotal_price: item.subtotalPrice
-        }]->(bc)
-        RETURN o
-      """,
+      MATCH (c:Customer {email:$customerEmail})
+      CREATE (o:Order {
+        id:            randomUUID(),
+        order_date:    date(),
+        total_price:   $totalPrice
+      })
+      CREATE (c)-[:PLACED]->(o)
+      WITH o
+      UNWIND $items AS item
+      MATCH (bc:BookCopy {id:item.bookCopyId})
+      CREATE (o)-[:CONTAINS {
+        quantity:       item.quantity,
+        subtotal_price: item.subtotalPrice
+      }]->(bc)
+      RETURN o
+      """
       columnName: "o"
     )
 
   applyDiscountToBooksByAuthor(
-    authorName: String!,
+    authorName: String!
     percentage: Float!
   ): [Book!]!
     @cypher(
       statement: """
-        MATCH (a:Author {name:$authorName})-[:WRITTEN_BY]->(b:Book)
-        SET b.rating = b.rating * (1 - $percentage/100)
-        RETURN b
-      """,
+      MATCH (a:Author {name:$authorName})-[:WRITTEN_BY]->(b:Book)
+      SET b.rating = b.rating * (1 - $percentage/100)
+      RETURN b
+      """
       columnName: "b"
     )
 }

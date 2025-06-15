@@ -1,0 +1,127 @@
+db.posts.insertOne(
+  
+// In the `orders` collection
+{
+  _id: ObjectId("order123"),
+  customer_id: ObjectId("customer456"),  // Reference to customers collection
+  order_date: ISODate("2025-06-14T10:00:00Z"),
+  total_price: NumberDecimal("39.98"),
+  order_details: [/* ... */]
+},
+
+
+// In the `books` collection
+{
+  isbn: "9781234567890",
+  title: "Distributed Systems",
+  authors: [ObjectId("auth1"), ObjectId("auth2")],  // Many-to-Many link
+  page_count: 400,
+  genres: ["Computer Science"],
+  categories: ["Education"],
+  price: NumberDecimal("29.99")
+},
+
+
+{
+  "_id": ObjectId("post1"),
+  "title": "Using MongoDB Design Patterns",
+  "content": "Let's learn the subset pattern!",
+  "recent_comments": [
+    {
+      "user": "Alice",
+      "comment": "Great post!",
+      "date": "2025-06-14T12:00:00Z"
+    },
+    {
+      "user": "Bob",
+      "comment": "Very helpful, thanks!",
+      "date": "2025-06-14T12:30:00Z"
+    }
+  ],
+  "comment_count": 187
+},
+
+
+
+{ name: "John Doe",
+  "mobile phone": "2885 6543",
+  "work phone": "8755 1234",
+  "land line": "7525 9137"
+}
+
+
+);
+
+
+const session = client.startSession();
+session.startTransaction();
+try {
+  // any number of insertOne / updateOne calls with { session }
+  await session.commitTransaction();
+} catch {
+  await session.abortTransaction();
+} finally {
+  session.endSession();
+}
+
+
+db.books.aggregate([
+  { 
+    $match: { title: { $regex: "Dune", $options: "i" } } 
+  },
+  { 
+    $lookup: {
+      from:     "authors",
+      localField:  "authors",
+      foreignField: "_id",
+      as:          "author_docs"
+    }
+  },
+  { $project: { title:1, "author_docs.name":1 } }
+]);
+
+
+db.posts.insertOne(
+
+
+{
+  _id: ObjectId("…"),
+  customer_id: ObjectId("…"),
+  order_date:  ISODate("2025-06-15T…"),
+  total_price: NumberDecimal("24.98"),
+  order_details: [                         // ← embedded array
+    { book_copy_id: ObjectId("…"), quantity:1, subtotal_price:NumberDecimal("9.99") },
+    { book_copy_id: ObjectId("…"), quantity:1, subtotal_price:NumberDecimal("14.99") }
+  ]
+}
+
+);
+
+
+
+db.orders.aggregate([
+  { $group: { 
+      _id: "$customer_id", 
+      total_spent: { $sum: "$total_price" } 
+    } 
+  },
+  { $sort: { total_spent: -1 } },
+  { 
+    $lookup: {
+      from:         "customers",
+      localField:   "_id",
+      foreignField: "_id",
+      as:           "customer"
+    }
+  },
+  { $unwind: "$customer" },
+  { 
+    $project: { 
+      _id: 0, 
+      name: "$customer.name", 
+      spent: "$total_spent" 
+    } 
+  }
+]);
+
+

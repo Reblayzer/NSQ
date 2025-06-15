@@ -81,6 +81,14 @@ db.createCollection("authors", {
          properties: {
             name: {
                bsonType: "string"
+            },
+            // New reverse reference to books
+            books: {
+               bsonType: "array",
+               description: "List of ISBNs for books this author has written",
+               items: {
+                  bsonType: "string"  // same as `books.isbn`
+               }
             }
          }
       }

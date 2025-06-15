@@ -160,6 +160,8 @@ async function retireCategory(categoryName) {
             { name: categoryName },
             { session }
          );
+
+         
          console.log(`Deleted category "${categoryName}".`);
 
          await session.commitTransaction();

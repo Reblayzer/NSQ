@@ -1,0 +1,246 @@
+
+
+
+type Mutation {
+  createOrder(customerEmail: String!, bookCopyId: ID!, price: Float!): Order!
+    @cypher(
+      statement: """
+      MATCH (c:Customer {email:$customerEmail})
+      MATCH (bc:BookCopy {id:$bookCopyId})
+      CREATE (o:Order {
+        id:          randomUUID(),
+        order_date:  date(),
+        total_price: $price
+      })
+      CREATE (c)-[:PLACED]->(o)
+      CREATE (o)-[:CONTAINS {
+        quantity:       1,
+        subtotal_price: $price
+      }]->(bc)
+      RETURN o
+      """
+      columnName: "o"
+    )
+}
+mutation CreateOneClickOrder(
+  $customerEmail: String!
+  $bookCopyId:    ID!
+  $price:         Float!
+) {
+  createOrder(
+    customerEmail: $customerEmail,
+    bookCopyId:    $bookCopyId,
+    price:         $price
+  ) {
+    id
+    numberOfBooks
+    totalPrice
+    items {
+      book { title }
+      quantity
+      lineTotal
+    }
+  }
+}
+
+
+
+
+type Mutation {
+  applyBookDiscount(
+    bookId:     ID!
+    percentage: Float!
+  ): Book! @cypher(
+    statement: """
+      MATCH (b:Book {id:$bookId})
+      SET b.price = b.price * (1 - $percentage/100)
+      RETURN b
+    """,
+    columnName: "b"
+  )
+}
+mutation DiscountBook($bookId: ID!, $percentage: Float!) {
+  applyBookDiscount(bookId: $bookId, percentage: $percentage) {
+    id
+    isbn
+    title
+    price
+  }
+}
+
+
+type Mutation {
+  ensureAuthor(name: String!): Author
+    @cypher(
+      statement: """
+        MERGE (a:Author {name:$name})
+        ON CREATE SET 
+          a.id        = randomUUID(),
+          a.created   = timestamp()
+        ON MATCH SET 
+          a.lastSeen  = timestamp()
+        RETURN a
+      """,
+      columnName: "a"
+    )
+}
+mutation EnsureAuthor($name: String!) {
+  ensureAuthor(name: $name) {
+    id
+    name
+  }
+}
+
+
+
+type Mutation {
+  removeBook(isbn: String!): Book
+    @cypher(
+      statement: """
+        MATCH (b:Book {isbn:$isbn})
+        DETACH DELETE b
+        RETURN b
+      """,
+      columnName: "b"
+    )
+}
+mutation RemoveBook($isbn: String!) {
+  removeBook(isbn: $isbn) {
+    id
+    title
+  }
+}
+
+
+
+type Mutation {
+  sellAndLog(
+    customerEmail: String!
+    bookCopyId:    ID!
+    price:         Float!
+  ): Order! @cypher(
+    statement: """
+      // 1) Create Order
+      MATCH (c:Customer {email:$customerEmail}), (bc:BookCopy {id:$bookCopyId})
+      CREATE (o:Order {
+        id:          randomUUID(),
+        order_date:  date(),
+        total_price: $price
+      })
+      CREATE (c)-[:PLACED]->(o)
+      CREATE (o)-[:CONTAINS {quantity:1, subtotal_price:$price}]->(bc)
+      // 2) Log it
+      CREATE (:OrderLog {orderId:o.id, timestamp:timestamp()})
+      RETURN o
+    """,
+    columnName: "o"
+  )
+}
+mutation SellAndLog(
+  $email: String!
+  $copyId: ID!
+  $price: Float!
+) {
+  sellAndLog(
+    customerEmail: $email,
+    bookCopyId:    $copyId,
+    price:         $price
+  ) {
+    id
+    totalPrice
+  }
+}
+
+
+
+type Query {
+  searchBooks(term: String!): [Book!]!
+    @cypher(
+      statement: """
+        MATCH (b:Book)-[:WRITTEN_BY]->(a:Author)
+        WHERE b.title CONTAINS $term
+        WITH b, collect(a) AS authors
+        RETURN b { .*, authors: authors }
+      """,
+      columnName: "b"
+    )
+}
+query SearchBooks($term: String!) {
+  searchBooks(term: $term) {
+    id
+    title
+    isbn
+    price
+    authors {
+      id
+      name
+    }
+  }
+}
+
+
+
+
+
+
+
+type Query {
+  ordersByCustomer(email: String!): [Order!]!
+    @cypher(
+      statement: """
+        MATCH (c:Customer {email:$email})-[:PLACED]->(o:Order)
+        RETURN o
+      """,
+      columnName: "o"
+    )
+}
+type Order {
+  items: [OrderItem!]!
+    @cypher(
+      statement: """
+        MATCH (this)-[r:CONTAINS]->(bc:BookCopy)-[:OF]->(b:Book)
+        RETURN {
+          book: b,
+          quantity: r.quantity,
+          lineTotal: r.subtotal_price
+        } AS OrderItem
+      """,
+      columnName: "OrderItem"
+    )
+}
+query OrdersByCustomer($email: String!) {
+  ordersByCustomer(email: $email) {
+    id
+    numberOfBooks
+    totalPrice
+    items {
+      book { title }
+      quantity
+      lineTotal
+    }
+  }
+}
+
+
+
+
+
+
+type Mutation { … }  
+type Query { … }
+
+query TotalSales($email:String!) {
+  totalSalesByCustomer(email:$email)
+}
+
+type Query {
+  totalSalesByCustomer(email: String!): Float!
+    @cypher(
+      statement: """
+        MATCH (:Customer {email:$email})-[:PLACED]->(o:Order)
+        RETURN sum(o.total_price)
+      """,
+      columnName: ""
+    )
+}
+

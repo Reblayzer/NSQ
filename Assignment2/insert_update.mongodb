@@ -25,3 +25,7 @@ db.orders.updateOne(
     }
   }
 );
+
+db.orders.updateOne(filter, {/* ... */}, {upsert:true})
+
+
