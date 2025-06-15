@@ -25,3 +25,25 @@ start().catch(err => {
   console.error(err);
   process.exit(1);
 });
+
+
+
+
+
+
+
+const session = client.startSession();
+try {
+  session.startTransaction();
+
+  // …multiple inserts/updates here…
+  await session.commitTransaction();
+} catch (err) {
+  await session.abortTransaction();
+} finally {
+  session.endSession();
+}
+
+
+
+

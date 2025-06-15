@@ -136,3 +136,56 @@ query($id: ID!) {
     }
   }
 }
+
+
+
+
+MATCH (b:Book)-[:BELONGS_TO]->(cat:Category {name: "Science Fiction"})
+RETURN b.title AS title;
+
+
+
+MATCH (p:Person)		
+OPTIONAL MATCH (p)-[:LIVES_IN]->(c:City)		
+RETURN p.name, c.name;
+
+
+
+
+MATCH (c:Call)		
+WHERE c.duration = 0 AND c.from.month = 5		
+RETURN COUNT(c) AS missed;
+
+
+MATCH (a:Author)-[:WRITTEN_BY]->(b:Book)		
+WITH a, COUNT(b) AS booksWritten		
+WHERE booksWritten > 3		
+RETURN a.name, booksWritten;
+
+
+
+// import tags from a parameterized list		
+UNWIND $tags AS tagName		
+MERGE (t:Tag {name: tagName});
+
+
+
+MATCH (b:Book)		
+RETURN b.title, b.released		
+ORDER BY b.released DESC		
+SKIP 5		
+LIMIT 10;
+
+
+// update		
+MATCH (a:Author {id: $id})		
+SET a.updatedAt = timestamp();
+
+
+
+// remove
+MATCH (b:Book {isbn: $isbn})
+DETACH DELETE b;
+
+
+

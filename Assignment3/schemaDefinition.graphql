@@ -268,3 +268,58 @@ type Mutation {
       columnName: "b"
     )
 }
+
+query GetAllBlogs {
+  blogs {
+    id
+    text
+    author {
+      username
+    }
+    comments {
+      text
+      user {
+        username
+      }
+    }
+  }
+}
+
+mutation AddBlog {
+  createBlog(text: "Hello, GraphQL!", authorId: "605c3b2f8c1f4a23b8f1e2d7") {
+    id
+    text
+    author {
+      username
+    }
+  }
+}
+
+# schema.graphql
+type User {
+  id: ID!
+  username: String!
+}
+
+type Blog {
+  id: ID!
+  text: String!
+  author: User!
+  comments: [Comment!]!
+}
+
+type Comment {
+  id: ID!
+  text: String!
+  user: User!
+}
+
+type Query {
+  blogs: [Blog!]!
+  blog(id: ID!): Blog
+}
+
+type Mutation {
+  createBlog(text: String!, authorId: ID!): Blog!
+  addComment(blogId: ID!, text: String!, userId: ID!): Comment!
+}

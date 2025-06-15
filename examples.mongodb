@@ -219,3 +219,86 @@ db.books.aggregate(
               
 
 
+exports = async function (changeEvent) {
+  try {
+    const orderLogCollection = context.services
+      .get("NSQ")
+      .db("assignment2")
+      .collection("orderLog");
+
+    if (changeEvent.operationType === "insert") {
+      await orderLogCollection.insertOne({
+        inserted: changeEvent.fullDocument,
+      });
+    } else if (changeEvent.operationType === "update") {
+      await orderLogCollection.insertOne({
+        updated: changeEvent.fullDocument,
+        updateDescription: changeEvent.updateDescription,
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error in trigger function:", error);
+    return { success: false, error: error.message };
+  }
+  
+};
+
+
+
+
+
+
+// Within a transaction: build and insert the order document
+await client.db('assignment2')
+  .collection('orders')
+  .insertOne(orderDocument, { session });
+
+
+
+// Fetch a specific book copy by its _id
+const bookCopy = await client.db('assignment2')
+  .collection('book_copies')
+  .findOne(
+    { _id: bookCopyId },
+    { session }
+  );
+
+
+
+
+// Change a customer’s address
+await client.db('assignment2')
+  .collection('customers')
+  .updateOne(
+    { _id: new ObjectId(customerId) },
+    { $set: { address: newAddress } }
+  );
+
+
+
+
+// Add an author to a book’s authors array
+await client.db('assignment2')
+  .collection('books')
+  .updateOne(
+    { _id: new ObjectId(bookId) },
+    { $push: { authors: new ObjectId(authorId) } }
+  );
+
+
+
+
+  // Remove the retired category document
+await client.db('assignment2')
+  .collection('categories')
+  .deleteOne(
+    { name: categoryName },
+    { session }
+  );
+
+
+
+
+  

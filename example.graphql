@@ -265,3 +265,107 @@ query {
 }
 
 
+
+
+
+# Built-in Scalar types: Int, Float, String, Boolean, ID
+
+"""
+A user of the blog platform
+"""
+type User {
+  id: ID!              # non-nullable unique identifier
+  username: String!    # non-nullable string
+  email: String
+}
+
+"""
+A comment on a blog post
+"""
+type Comment {
+  id: ID!
+  text: String!        # required text
+  user: User!          # author of the comment
+  likes: [String!]!    # array of usernames who liked it
+}
+
+"""
+A blog post
+"""
+type Blog {
+  id: ID!
+  text: String!           # post content
+  author: User!           # who wrote it
+  comments: [Comment!]!   # list of comments
+  numberOfLikes: Int      # optional count
+}
+
+# Entry points for reads
+type Query {
+  blogs: [Blog!]!            # get all blogs
+  blog(id: ID!): Blog        # get one by ID
+}
+
+# Entry points for writes
+type Mutation {
+  createBlog(text: String!, authorId: ID!): Blog!
+  addComment(blogId: ID!, text: String!, userId: ID!): Comment!
+}
+
+
+{
+  updatedFields: { fieldA: newValueA, fieldB: newValueB, … },
+  removedFields: ["fieldC", "fieldD", …]
+}
+
+
+
+
+
+
+type Author @node(label: "Author") {
+  id: ID! @id
+  name: String!
+  books: [Book!]! @relationship(type: "WRITTEN_BY", direction: IN)
+}
+
+type Book @node(label: "Book") {
+  id: ID! @id
+  title: String!
+  published: Int
+  authors: [Author!]! @relationship(type: "WRITTEN_BY", direction: OUT)
+  categories: [Category!]! @relationship(type: "IN_CATEGORY", direction: OUT)
+}
+
+type Category @node(label: "Category") {
+  id: ID! @id
+  name: String!
+  books: [Book!]! @relationship(type: "IN_CATEGORY", direction: IN)
+}
+
+type Query {
+  # Custom full‐text search on Book.title via Cypher
+  searchBooks(term: String!): [Book]! 
+    @cypher(statement: """
+      MATCH (b:Book)
+      WHERE toLower(b.title) CONTAINS toLower($term)
+      RETURN b
+    """)
+}
+
+
+
+
+query SearchForGraphQL {
+  searchBooks(term: "GraphQL") {
+    title
+    authors {
+      name
+    }
+    published
+  }
+}
+
+
+
+
